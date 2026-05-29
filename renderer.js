@@ -182,6 +182,10 @@ elements.bookmarkButton.addEventListener('click', () => {
 });
 
 elements.bookmarkList.addEventListener('change', async () => {
+  if (!elements.bookmarkList.value) {
+    return;
+  }
+
   const index = Number(elements.bookmarkList.value);
   if (Number.isNaN(index)) {
     return;

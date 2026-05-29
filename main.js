@@ -26,7 +26,7 @@ const sanitizeUrl = (value) => {
     return HOMEPAGE;
   }
 
-  if (/^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(trimmed)) {
+  if (/^https?:\/\//i.test(trimmed)) {
     return trimmed;
   }
 
@@ -108,7 +108,8 @@ const applyProxySettings = async () => {
   ses.closeAllConnections();
 };
 
-const isValidProxyHost = (host) => /^[a-zA-Z0-9.-]+$/.test(host);
+const isValidProxyHost = (host) =>
+  /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$/.test(host);
 const isValidProxyPort = (port) => /^\d{1,5}$/.test(port) && Number(port) >= 1 && Number(port) <= 65535;
 
 const createWindow = async () => {
