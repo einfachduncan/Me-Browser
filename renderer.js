@@ -275,7 +275,7 @@ const renderExtensionDetail = () => {
   elements.extensionDetailPermissions.textContent = details.permissions.length
     ? `Permissions: ${details.permissions.join(', ')}`
     : 'Permissions: none';
-  elements.extensionDetailStats.textContent = `Blocked requests: ${details.config?.stats?.blockedRequests || 0}`;
+  elements.extensionDetailStats.textContent = `Statistics: ${details.config?.stats?.blockedRequests || 0} blocked requests`;
   elements.extensionSettingsFrame.srcdoc = details.settingsHtml || '<p>No settings UI provided for this extension.</p>';
   elements.extensionSettingsEditor.value = JSON.stringify(details.config?.settings || {}, null, 2);
 

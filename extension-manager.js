@@ -397,8 +397,10 @@ class ExtensionManager {
       }
 
       const shouldBlock = blockedPatterns.some((pattern) => {
-        const loweredPattern = pattern.toLowerCase().replace(/\*/g, '');
-        return matchesPattern(url, pattern) || (loweredPattern && loweredUrl.includes(loweredPattern));
+        if (pattern.includes('*')) {
+          return matchesPattern(url, pattern);
+        }
+        return loweredUrl.includes(pattern.toLowerCase());
       });
       if (shouldBlock) {
         extension.config.stats.blockedRequests += 1;
@@ -450,9 +452,6 @@ class ExtensionManager {
   async saveExtensionSettings(extensionId, nextSettings) {
     const extension = this.requireExtension(extensionId);
     extension.config.settings = toSerializableObject(nextSettings);
-    for (const key of Object.keys(extension.config.settings)) {
-      delete extension.config.storage[key];
-    }
     await this.saveConfig(extension);
     if (extension.config.enabled) {
       await this.refreshEnabledExtensions();
@@ -501,8 +500,8 @@ class ExtensionManager {
       case 'storage.get':
         this.requirePermission(extension, 'storage');
         return this.applyStorageGet({
-          ...extension.config.settings,
-          ...extension.config.storage
+          ...extension.config.storage,
+          ...extension.config.settings
         }, payload.args?.[0]);
       case 'storage.set': {
         this.requirePermission(extension, 'storage');
@@ -604,7 +603,7 @@ class ExtensionManager {
         extension.config.settings.savedGroups = [
           ...(Array.isArray(extension.config.settings.savedGroups) ? extension.config.settings.savedGroups : []),
           {
-            name: `Group ${new Date().toLocaleTimeString()}`,
+            name: `Group ${new Date().toLocaleString()}`,
             tabs: [...this.getBrowserViews().values()].map((view) => ({
               title: view.webContents.getTitle() || 'New Tab',
               url: view.webContents.getURL() || this.getHomepage()
