@@ -12,6 +12,7 @@ const elements = {
   tabsContainer: document.getElementById('tabsContainer'),
   newTabButton: document.getElementById('newTabButton'),
   webViewsContainer: document.getElementById('webViewsContainer'),
+  mainContainer: document.querySelector('.main-container'),
   sidebarToggle: document.getElementById('sidebarToggle'),
   sidebar: document.getElementById('sidebar'),
   sidebarClose: document.getElementById('sidebarClose')
@@ -47,11 +48,11 @@ const setStatus = (text) => {
 };
 
 const toggleSidebar = () => {
-  elements.sidebar.classList.toggle('open');
+  elements.mainContainer.classList.toggle('sidebar-open');
 };
 
 const closeSidebar = () => {
-  elements.sidebar.classList.remove('open');
+  elements.mainContainer.classList.remove('sidebar-open');
 };
 
 const switchSidebarTab = (tabName) => {
