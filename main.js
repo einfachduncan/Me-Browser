@@ -14,6 +14,7 @@ let proxySettings = {
   host: '',
   port: ''
 };
+const adFilters = Array.isArray(filters) ? filters.filter((entry) => typeof entry === 'string') : [];
 
 const sanitizeUrl = (value) => {
   if (!value || typeof value !== 'string') {
@@ -73,8 +74,8 @@ const shouldBlockByFilter = (requestUrl) => {
   }
 
   const loweredUrl = requestUrl.toLowerCase();
-  return filters.some((filter) => {
-    const normalized = String(filter).toLowerCase().replaceAll('*', '');
+  return adFilters.some((filter) => {
+    const normalized = filter.toLowerCase().replaceAll('*', '');
     return normalized && loweredUrl.includes(normalized);
   });
 };
@@ -106,6 +107,9 @@ const applyProxySettings = async () => {
 
   ses.closeAllConnections();
 };
+
+const isValidProxyHost = (host) => /^[a-zA-Z0-9.-]+$/.test(host);
+const isValidProxyPort = (port) => /^\d{2,5}$/.test(port) && Number(port) <= 65535;
 
 const createWindow = async () => {
   mainWindow = new BrowserWindow({
@@ -156,8 +160,11 @@ const createWindow = async () => {
     const requestHeaders = { ...details.requestHeaders, DNT: '1' };
 
     if (trackingProtectionEnabled && isThirdPartyRequest(details.url, details.initiator)) {
-      delete requestHeaders.Cookie;
-      delete requestHeaders.cookie;
+      for (const headerName of Object.keys(requestHeaders)) {
+        if (headerName.toLowerCase() === 'cookie') {
+          delete requestHeaders[headerName];
+        }
+      }
     }
 
     callback({ requestHeaders });
@@ -230,10 +237,18 @@ ipcMain.handle('browser:setTrackingProtection', (_event, enabled) => {
 });
 
 ipcMain.handle('browser:setProxy', async (_event, payload = {}) => {
+  const host = String(payload.host || '').trim();
+  const port = String(payload.port || '').trim();
+  const enabled = Boolean(payload.enabled);
+
+  if (enabled && (!isValidProxyHost(host) || !isValidProxyPort(port))) {
+    throw new Error('Invalid proxy host or port');
+  }
+
   proxySettings = {
-    enabled: Boolean(payload.enabled),
-    host: String(payload.host || '').trim(),
-    port: String(payload.port || '').trim()
+    enabled,
+    host,
+    port
   };
 
   await applyProxySettings();

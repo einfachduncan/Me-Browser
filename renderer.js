@@ -29,8 +29,10 @@ const settings = {
 };
 
 let currentUrl = DEFAULT_HOMEPAGE;
+let currentTitle = 'Me Browser';
 let canGoBack = false;
 let canGoForward = false;
+let statusTimeoutId;
 
 const getBookmarks = () => {
   try {
@@ -47,7 +49,10 @@ const setBookmarks = (bookmarks) => {
 
 const setStatus = (text) => {
   elements.statusText.textContent = text;
-  window.setTimeout(() => {
+  if (statusTimeoutId) {
+    window.clearTimeout(statusTimeoutId);
+  }
+  statusTimeoutId = window.setTimeout(() => {
     if (elements.statusText.textContent === text) {
       elements.statusText.textContent = '';
     }
@@ -107,7 +112,11 @@ const navigateToInput = async () => {
     return;
   }
 
-  await window.browserAPI.navigate('go', value);
+  try {
+    await window.browserAPI.navigate('go', value);
+  } catch {
+    setStatus('Navigation failed');
+  }
 };
 
 elements.backButton.addEventListener('click', () => window.browserAPI.navigate('back'));
@@ -141,13 +150,16 @@ elements.applyProxyButton.addEventListener('click', async () => {
   settings.proxyPort = elements.proxyPort.value.trim();
   saveSettings();
 
-  await window.browserAPI.setProxy({
-    enabled: settings.proxyEnabled,
-    host: settings.proxyHost,
-    port: settings.proxyPort
-  });
-
-  setStatus('Proxy settings updated');
+  try {
+    await window.browserAPI.setProxy({
+      enabled: settings.proxyEnabled,
+      host: settings.proxyHost,
+      port: settings.proxyPort
+    });
+    setStatus('Proxy settings updated');
+  } catch {
+    setStatus('Invalid proxy settings');
+  }
 });
 
 elements.clearCacheButton.addEventListener('click', async () => {
@@ -163,7 +175,7 @@ elements.bookmarkButton.addEventListener('click', () => {
     return;
   }
 
-  bookmarks.push({ title: currentUrl, url: currentUrl });
+  bookmarks.push({ title: currentTitle || currentUrl, url: currentUrl });
   setBookmarks(bookmarks);
   renderBookmarks();
   setStatus('Bookmark added');
@@ -188,6 +200,7 @@ elements.bookmarkList.addEventListener('change', async () => {
 
 window.browserAPI.onBrowserState((state) => {
   currentUrl = state.url || DEFAULT_HOMEPAGE;
+  currentTitle = state.title || currentUrl;
   canGoBack = Boolean(state.canGoBack);
   canGoForward = Boolean(state.canGoForward);
   elements.addressBar.value = currentUrl;
