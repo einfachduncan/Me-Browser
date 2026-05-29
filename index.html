@@ -8,35 +8,29 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <!-- HEADER -->
     <header class="toolbar">
-      <div class="nav-row">
-        <button id="backButton" title="Back">←</button>
-        <button id="forwardButton" title="Forward">→</button>
-        <button id="reloadButton" title="Reload">⟳</button>
-        <button id="homeButton" title="Home">⌂</button>
-        <input id="addressBar" type="text" placeholder="Enter URL" autocomplete="off" />
-        <button id="goButton">Go</button>
-        <div id="loadingSpinner" class="spinner hidden" aria-live="polite"></div>
-        <button id="sidebarToggle" class="sidebar-toggle-btn" title="Toggle Sidebar">⚙️</button>
+      <div class="toolbar-row">
+        <div class="nav-controls">
+          <button id="backButton" class="nav-btn" title="Back">←</button>
+          <button id="forwardButton" class="nav-btn" title="Forward">→</button>
+          <button id="reloadButton" class="nav-btn" title="Reload">⟳</button>
+          <button id="homeButton" class="nav-btn" title="Home">⌂</button>
+        </div>
+        <input id="addressBar" type="text" class="address-bar" placeholder="Enter URL" autocomplete="off" />
+        <button id="goButton" class="go-btn">Go</button>
+        <div id="loadingSpinner" class="spinner hidden"></div>
+        <button id="sidebarToggle" class="sidebar-toggle-btn" title="Settings">⚙️</button>
       </div>
-      <div class="settings-row">
-        <label><input id="adBlockToggle" type="checkbox" /> Ad Block</label>
-        <label><input id="trackingToggle" type="checkbox" /> Tracking Protection</label>
-        <label><input id="proxyToggle" type="checkbox" /> Proxy</label>
-        <input id="proxyHost" type="text" placeholder="Proxy host" />
-        <input id="proxyPort" type="text" placeholder="Port" />
-        <button id="applyProxyButton">Apply Proxy</button>
-        <button id="clearCacheButton">Clear Cache</button>
-      </div>
-      <div class="bookmark-row">
-        <button id="bookmarkButton">☆ Bookmark</button>
-        <select id="bookmarkList">
-          <option value="">Bookmarks</option>
-        </select>
-        <span id="statusText"></span>
+
+      <!-- TABS BAR -->
+      <div class="tabs-bar">
+        <div id="tabsContainer" class="tabs-container"></div>
+        <button id="newTabButton" class="new-tab-btn">+</button>
       </div>
     </header>
 
+    <!-- MAIN CONTAINER -->
     <div class="main-container">
       <div id="webViewsContainer" class="webviews-container"></div>
 
@@ -49,7 +43,6 @@
 
         <div class="sidebar-tabs">
           <button class="sidebar-tab active" data-tab="general">General</button>
-          <button class="sidebar-tab" data-tab="extensions">🧩 Extensions</button>
           <button class="sidebar-tab" data-tab="bookmarks">⭐ Bookmarks</button>
           <button class="sidebar-tab" data-tab="advanced">Advanced</button>
         </div>
@@ -59,11 +52,11 @@
           <div class="setting-group">
             <h3>Privacy & Security</h3>
             <label class="setting-label">
-              <input id="adBlockToggleSidebar" type="checkbox" />
+              <input id="adBlockToggle" type="checkbox" />
               <span>Ad Block</span>
             </label>
             <label class="setting-label">
-              <input id="trackingToggleSidebar" type="checkbox" />
+              <input id="trackingToggle" type="checkbox" />
               <span>Tracking Protection</span>
             </label>
           </div>
@@ -71,36 +64,26 @@
           <div class="setting-group">
             <h3>Proxy Settings</h3>
             <label class="setting-label">
-              <input id="proxyToggleSidebar" type="checkbox" />
+              <input id="proxyToggle" type="checkbox" />
               <span>Enable Proxy</span>
             </label>
-            <div class="proxy-group">
-              <input id="proxyHostSidebar" type="text" placeholder="Proxy host" class="setting-input" />
-              <input id="proxyPortSidebar" type="text" placeholder="Port" class="setting-input" />
-              <button id="applyProxySidebar" class="setting-btn">Apply</button>
+            <div class="proxy-inputs">
+              <input id="proxyHost" type="text" placeholder="Host" class="setting-input" />
+              <input id="proxyPort" type="text" placeholder="Port" class="setting-input" />
+              <button id="applyProxyButton" class="setting-btn">Apply</button>
             </div>
           </div>
 
           <div class="setting-group">
-            <h3>Data Management</h3>
-            <button id="clearCacheSidebar" class="setting-btn danger">Clear Cache & Cookies</button>
-          </div>
-        </div>
-
-        <!-- EXTENSIONS TAB -->
-        <div class="sidebar-content" id="extensions-tab">
-          <div class="extensions-header">
-            <h3>Extensions</h3>
-            <button id="installExtension" class="setting-btn">+ Install</button>
-          </div>
-          <div id="extensionsList" class="extensions-list">
-            <p class="empty-message">No extensions installed</p>
+            <h3>Data</h3>
+            <button id="clearCacheButton" class="setting-btn danger">Clear Cache</button>
           </div>
         </div>
 
         <!-- BOOKMARKS TAB -->
         <div class="sidebar-content" id="bookmarks-tab">
           <h3>Bookmarks</h3>
+          <button id="bookmarkButton" class="setting-btn">+ Add Current Page</button>
           <div id="bookmarksList" class="bookmarks-list">
             <p class="empty-message">No bookmarks</p>
           </div>
@@ -109,13 +92,12 @@
         <!-- ADVANCED TAB -->
         <div class="sidebar-content" id="advanced-tab">
           <div class="setting-group">
-            <h3>Browser Info</h3>
-            <p>Me Browser v1.0</p>
-            <p id="browserInfo"></p>
+            <h3>Private Window</h3>
+            <button id="privateWindowButton" class="setting-btn">🔐 Open Private Window</button>
           </div>
           <div class="setting-group">
-            <h3>Storage</h3>
-            <button id="clearAllData" class="setting-btn danger">Clear All Data</button>
+            <h3>Clear All Data</h3>
+            <button id="clearAllData" class="setting-btn danger">Delete Everything</button>
           </div>
         </div>
       </aside>

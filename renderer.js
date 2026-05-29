@@ -9,35 +9,12 @@ const elements = {
   addressBar: document.getElementById('addressBar'),
   goButton: document.getElementById('goButton'),
   loadingSpinner: document.getElementById('loadingSpinner'),
+  tabsContainer: document.getElementById('tabsContainer'),
+  newTabButton: document.getElementById('newTabButton'),
+  webViewsContainer: document.getElementById('webViewsContainer'),
   sidebarToggle: document.getElementById('sidebarToggle'),
   sidebar: document.getElementById('sidebar'),
-  sidebarClose: document.getElementById('sidebarClose'),
-  webViewsContainer: document.getElementById('webViewsContainer'),
-  statusText: document.getElementById('statusText'),
-  adBlockToggle: document.getElementById('adBlockToggle'),
-  trackingToggle: document.getElementById('trackingToggle'),
-  proxyToggle: document.getElementById('proxyToggle'),
-  proxyHost: document.getElementById('proxyHost'),
-  proxyPort: document.getElementById('proxyPort'),
-  applyProxyButton: document.getElementById('applyProxyButton'),
-  clearCacheButton: document.getElementById('clearCacheButton'),
-  bookmarkButton: document.getElementById('bookmarkButton'),
-  bookmarkList: document.getElementById('bookmarkList')
-};
-
-const sidebarElements = {
-  tabs: document.querySelectorAll('.sidebar-tab'),
-  contents: document.querySelectorAll('.sidebar-content'),
-  adBlockToggle: document.getElementById('adBlockToggleSidebar'),
-  trackingToggle: document.getElementById('trackingToggleSidebar'),
-  proxyToggle: document.getElementById('proxyToggleSidebar'),
-  proxyHost: document.getElementById('proxyHostSidebar'),
-  proxyPort: document.getElementById('proxyPortSidebar'),
-  applyProxyButton: document.getElementById('applyProxySidebar'),
-  clearCacheButton: document.getElementById('clearCacheSidebar'),
-  extensionsList: document.getElementById('extensionsList'),
-  bookmarksList: document.getElementById('bookmarksList'),
-  clearAllDataButton: document.getElementById('clearAllData')
+  sidebarClose: document.getElementById('sidebarClose')
 };
 
 const settings = {
@@ -48,34 +25,14 @@ const settings = {
   proxyPort: localStorage.getItem('proxyPort') || ''
 };
 
-let currentUrl = DEFAULT_HOMEPAGE;
-let currentTitle = 'Me Browser';
-let canGoBack = false;
-let canGoForward = false;
+let tabs = [];
+let currentTabId = null;
 let statusTimeoutId;
+let nextTabId = 1;
 
-// SIDEBAR FUNCTIONS
-const toggleSidebar = () => {
-  elements.sidebar.classList.toggle('open');
-};
-
-const closeSidebar = () => {
-  elements.sidebar.classList.remove('open');
-};
-
-const switchSidebarTab = (tabName) => {
-  sidebarElements.tabs.forEach(tab => tab.classList.remove('active'));
-  sidebarElements.contents.forEach(content => content.classList.remove('active'));
-  
-  document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-  document.getElementById(`${tabName}-tab`).classList.add('active');
-};
-
-// BOOKMARK FUNCTIONS
 const getBookmarks = () => {
   try {
-    const value = localStorage.getItem('bookmarks');
-    return value ? JSON.parse(value) : [];
+    return JSON.parse(localStorage.getItem('bookmarks') || '[]');
   } catch {
     return [];
   }
@@ -85,112 +42,60 @@ const setBookmarks = (bookmarks) => {
   localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
 };
 
+const setStatus = (text) => {
+  // Status display removed - can add back if needed
+};
+
+const toggleSidebar = () => {
+  elements.sidebar.classList.toggle('open');
+};
+
+const closeSidebar = () => {
+  elements.sidebar.classList.remove('open');
+};
+
+const switchSidebarTab = (tabName) => {
+  document.querySelectorAll('.sidebar-tab').forEach(tab => tab.classList.remove('active'));
+  document.querySelectorAll('.sidebar-content').forEach(content => content.classList.remove('active'));
+  
+  document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+  document.getElementById(`${tabName}-tab`).classList.add('active');
+};
+
 const renderBookmarks = () => {
   const bookmarks = getBookmarks();
+  const bookmarksList = document.getElementById('bookmarksList');
   
-  // Main dropdown
-  if (elements.bookmarkList) {
-    elements.bookmarkList.textContent = '';
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = 'Bookmarks';
-    elements.bookmarkList.appendChild(placeholder);
+  if (bookmarks.length === 0) {
+    bookmarksList.innerHTML = '<p class="empty-message">No bookmarks</p>';
+  } else {
+    bookmarksList.innerHTML = bookmarks.map((bookmark, index) => `
+      <div class="bookmark-item" data-index="${index}">
+        <span class="bookmark-item-title" title="${bookmark.title || bookmark.url}">${bookmark.title || bookmark.url}</span>
+        <button class="bookmark-item-delete" title="Delete">×</button>
+      </div>
+    `).join('');
 
-    bookmarks.forEach((bookmark, index) => {
-      const option = document.createElement('option');
-      option.value = String(index);
-      option.textContent = bookmark.title || bookmark.url;
-      elements.bookmarkList.appendChild(option);
+    bookmarksList.querySelectorAll('.bookmark-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('bookmark-item-delete')) {
+          const index = item.dataset.index;
+          const bookmark = bookmarks[index];
+          elements.addressBar.value = bookmark.url;
+          window.browserAPI.navigate('go', bookmark.url);
+          closeSidebar();
+        }
+      });
+
+      item.querySelector('.bookmark-item-delete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const index = item.dataset.index;
+        const newBookmarks = bookmarks.filter((_, i) => i !== parseInt(index));
+        setBookmarks(newBookmarks);
+        renderBookmarks();
+      });
     });
   }
-  
-  // Sidebar list
-  if (sidebarElements.bookmarksList) {
-    if (bookmarks.length === 0) {
-      sidebarElements.bookmarksList.innerHTML = '<p class="empty-message">No bookmarks</p>';
-    } else {
-      sidebarElements.bookmarksList.innerHTML = bookmarks.map((bookmark, index) => `
-        <div class="bookmark-item" data-index="${index}">
-          <span class="bookmark-item-title" title="${bookmark.title || bookmark.url}">${bookmark.title || bookmark.url}</span>
-          <button class="bookmark-item-delete" title="Delete">×</button>
-        </div>
-      `).join('');
-
-      // Bookmark click handlers
-      sidebarElements.bookmarksList.querySelectorAll('.bookmark-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-          if (!e.target.classList.contains('bookmark-item-delete')) {
-            const index = item.dataset.index;
-            const bookmark = bookmarks[index];
-            if (elements.addressBar) elements.addressBar.value = bookmark.url;
-            window.browserAPI.navigate('go', bookmark.url);
-            closeSidebar();
-          }
-        });
-
-        item.querySelector('.bookmark-item-delete').addEventListener('click', (e) => {
-          e.stopPropagation();
-          const index = item.dataset.index;
-          const newBookmarks = bookmarks.filter((_, i) => i !== parseInt(index));
-          setBookmarks(newBookmarks);
-          renderBookmarks();
-        });
-      });
-    }
-  }
-};
-
-const setStatus = (text) => {
-  if (elements.statusText) {
-    elements.statusText.textContent = text;
-    if (statusTimeoutId) {
-      window.clearTimeout(statusTimeoutId);
-    }
-    statusTimeoutId = window.setTimeout(() => {
-      if (elements.statusText && elements.statusText.textContent === text) {
-        elements.statusText.textContent = '';
-      }
-    }, 2500);
-  }
-};
-
-const updateNavButtons = () => {
-  if (elements.backButton) elements.backButton.disabled = !canGoBack;
-  if (elements.forwardButton) elements.forwardButton.disabled = !canGoForward;
-};
-
-const saveSettings = () => {
-  localStorage.setItem('adBlockEnabled', String(settings.adBlock));
-  localStorage.setItem('trackingProtectionEnabled', String(settings.trackingProtection));
-  localStorage.setItem('proxyEnabled', String(settings.proxyEnabled));
-  localStorage.setItem('proxyHost', settings.proxyHost);
-  localStorage.setItem('proxyPort', settings.proxyPort);
-};
-
-const applySettingsToUi = () => {
-  // Main toolbar
-  if (elements.adBlockToggle) elements.adBlockToggle.checked = settings.adBlock;
-  if (elements.trackingToggle) elements.trackingToggle.checked = settings.trackingProtection;
-  if (elements.proxyToggle) elements.proxyToggle.checked = settings.proxyEnabled;
-  if (elements.proxyHost) elements.proxyHost.value = settings.proxyHost;
-  if (elements.proxyPort) elements.proxyPort.value = settings.proxyPort;
-  
-  // Sidebar
-  if (sidebarElements.adBlockToggle) sidebarElements.adBlockToggle.checked = settings.adBlock;
-  if (sidebarElements.trackingToggle) sidebarElements.trackingToggle.checked = settings.trackingProtection;
-  if (sidebarElements.proxyToggle) sidebarElements.proxyToggle.checked = settings.proxyEnabled;
-  if (sidebarElements.proxyHost) sidebarElements.proxyHost.value = settings.proxyHost;
-  if (sidebarElements.proxyPort) sidebarElements.proxyPort.value = settings.proxyPort;
-};
-
-const pushSettingsToMain = async () => {
-  await window.browserAPI.setAdBlock(settings.adBlock);
-  await window.browserAPI.setTrackingProtection(settings.trackingProtection);
-  await window.browserAPI.setProxy({
-    enabled: settings.proxyEnabled,
-    host: settings.proxyHost,
-    port: settings.proxyPort
-  });
 };
 
 const processInput = (value) => {
@@ -216,27 +121,108 @@ const navigateToInput = async () => {
 
   try {
     await window.browserAPI.navigate('go', urlToLoad);
-  } catch {
-    setStatus('Navigation failed');
+  } catch (e) {
+    console.error('Navigation error:', e);
   }
 };
 
-// EVENT LISTENERS - SIDEBAR
-if (elements.sidebarToggle) elements.sidebarToggle.addEventListener('click', toggleSidebar);
-if (elements.sidebarClose) elements.sidebarClose.addEventListener('click', closeSidebar);
+const getCurrentTab = () => tabs.find(t => t.id === currentTabId);
 
-sidebarElements.tabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-    switchSidebarTab(tab.dataset.tab);
+const updateNavButtons = () => {
+  const currentTab = getCurrentTab();
+  elements.backButton.disabled = !currentTab || !currentTab.canGoBack;
+  elements.forwardButton.disabled = !currentTab || !currentTab.canGoForward;
+};
+
+const updateAddressBar = () => {
+  const currentTab = getCurrentTab();
+  elements.addressBar.value = currentTab ? currentTab.url : DEFAULT_HOMEPAGE;
+};
+
+const renderTabs = () => {
+  elements.tabsContainer.innerHTML = '';
+
+  tabs.forEach((tab) => {
+    const tabEl = document.createElement('div');
+    tabEl.className = `tab ${tab.id === currentTabId ? 'active' : ''}`;
+
+    const title = document.createElement('span');
+    title.className = 'tab-title';
+    title.title = tab.title;
+    title.textContent = tab.title;
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'tab-close';
+    closeButton.type = 'button';
+    closeButton.textContent = '×';
+
+    tabEl.appendChild(title);
+    tabEl.appendChild(closeButton);
+
+    tabEl.addEventListener('click', (e) => {
+      if (e.target !== closeButton) {
+        switchTab(tab.id);
+      }
+    });
+
+    closeButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeTab(tab.id);
+    });
+
+    elements.tabsContainer.appendChild(tabEl);
   });
-});
+};
 
-// EVENT LISTENERS - MAIN TOOLBAR
+const createNewTab = async () => {
+  const tabId = nextTabId++;
+  
+  const tab = {
+    id: tabId,
+    title: 'New Tab',
+    url: DEFAULT_HOMEPAGE,
+    canGoBack: false,
+    canGoForward: false
+  };
+  
+  tabs.push(tab);
+  await switchTab(tabId);
+  renderTabs();
+  await window.browserAPI.createTab(tabId);
+};
+
+const switchTab = async (tabId) => {
+  currentTabId = tabId;
+  await window.browserAPI.switchTab(tabId);
+  updateAddressBar();
+  updateNavButtons();
+  renderTabs();
+};
+
+const closeTab = async (tabId) => {
+  tabs = tabs.filter((t) => t.id !== tabId);
+  
+  if (currentTabId === tabId) {
+    if (tabs.length > 0) {
+      await switchTab(tabs[tabs.length - 1].id);
+    } else {
+      currentTabId = null;
+      await createNewTab();
+    }
+  } else {
+    renderTabs();
+  }
+  
+  await window.browserAPI.closeTab(tabId);
+};
+
+// EVENT LISTENERS
 if (elements.backButton) elements.backButton.addEventListener('click', () => window.browserAPI.navigate('back'));
 if (elements.forwardButton) elements.forwardButton.addEventListener('click', () => window.browserAPI.navigate('forward'));
 if (elements.reloadButton) elements.reloadButton.addEventListener('click', () => window.browserAPI.navigate('reload'));
 if (elements.homeButton) elements.homeButton.addEventListener('click', () => window.browserAPI.navigate('home'));
 if (elements.goButton) elements.goButton.addEventListener('click', navigateToInput);
+if (elements.newTabButton) elements.newTabButton.addEventListener('click', createNewTab);
 
 if (elements.addressBar) {
   elements.addressBar.addEventListener('keydown', (event) => {
@@ -247,35 +233,57 @@ if (elements.addressBar) {
   });
 }
 
-// SETTINGS - MAIN TOOLBAR
-if (elements.adBlockToggle) {
-  elements.adBlockToggle.addEventListener('change', async () => {
-    settings.adBlock = elements.adBlockToggle.checked;
-    saveSettings();
-    if (sidebarElements.adBlockToggle) sidebarElements.adBlockToggle.checked = settings.adBlock;
+// SIDEBAR
+if (elements.sidebarToggle) elements.sidebarToggle.addEventListener('click', toggleSidebar);
+if (elements.sidebarClose) elements.sidebarClose.addEventListener('click', closeSidebar);
+
+document.querySelectorAll('.sidebar-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    switchSidebarTab(tab.dataset.tab);
+  });
+});
+
+// SETTINGS - Ad Block
+const adBlockToggle = document.getElementById('adBlockToggle');
+if (adBlockToggle) {
+  adBlockToggle.checked = settings.adBlock;
+  adBlockToggle.addEventListener('change', async () => {
+    settings.adBlock = adBlockToggle.checked;
+    localStorage.setItem('adBlockEnabled', String(settings.adBlock));
     await window.browserAPI.setAdBlock(settings.adBlock);
   });
 }
 
-if (elements.trackingToggle) {
-  elements.trackingToggle.addEventListener('change', async () => {
-    settings.trackingProtection = elements.trackingToggle.checked;
-    saveSettings();
-    if (sidebarElements.trackingToggle) sidebarElements.trackingToggle.checked = settings.trackingProtection;
+// SETTINGS - Tracking
+const trackingToggle = document.getElementById('trackingToggle');
+if (trackingToggle) {
+  trackingToggle.checked = settings.trackingProtection;
+  trackingToggle.addEventListener('change', async () => {
+    settings.trackingProtection = trackingToggle.checked;
+    localStorage.setItem('trackingProtectionEnabled', String(settings.trackingProtection));
     await window.browserAPI.setTrackingProtection(settings.trackingProtection);
   });
 }
 
-if (elements.applyProxyButton) {
-  elements.applyProxyButton.addEventListener('click', async () => {
-    settings.proxyEnabled = elements.proxyToggle.checked;
-    settings.proxyHost = elements.proxyHost.value.trim();
-    settings.proxyPort = elements.proxyPort.value.trim();
-    saveSettings();
+// SETTINGS - Proxy
+const proxyToggle = document.getElementById('proxyToggle');
+const proxyHost = document.getElementById('proxyHost');
+const proxyPort = document.getElementById('proxyPort');
+const applyProxyButton = document.getElementById('applyProxyButton');
 
-    if (sidebarElements.proxyToggle) sidebarElements.proxyToggle.checked = settings.proxyEnabled;
-    if (sidebarElements.proxyHost) sidebarElements.proxyHost.value = settings.proxyHost;
-    if (sidebarElements.proxyPort) sidebarElements.proxyPort.value = settings.proxyPort;
+if (proxyToggle) proxyToggle.checked = settings.proxyEnabled;
+if (proxyHost) proxyHost.value = settings.proxyHost;
+if (proxyPort) proxyPort.value = settings.proxyPort;
+
+if (applyProxyButton) {
+  applyProxyButton.addEventListener('click', async () => {
+    settings.proxyEnabled = proxyToggle?.checked || false;
+    settings.proxyHost = proxyHost?.value.trim() || '';
+    settings.proxyPort = proxyPort?.value.trim() || '';
+    
+    localStorage.setItem('proxyEnabled', String(settings.proxyEnabled));
+    localStorage.setItem('proxyHost', settings.proxyHost);
+    localStorage.setItem('proxyPort', settings.proxyPort);
 
     try {
       await window.browserAPI.setProxy({
@@ -283,139 +291,82 @@ if (elements.applyProxyButton) {
         host: settings.proxyHost,
         port: settings.proxyPort
       });
-      setStatus('Proxy settings updated');
-    } catch {
-      setStatus('Invalid proxy settings');
+    } catch (e) {
+      console.error('Proxy error:', e);
     }
   });
 }
 
-if (elements.clearCacheButton) {
-  elements.clearCacheButton.addEventListener('click', async () => {
+// SETTINGS - Cache
+const clearCacheButton = document.getElementById('clearCacheButton');
+if (clearCacheButton) {
+  clearCacheButton.addEventListener('click', async () => {
     await window.browserAPI.clearCache();
-    setStatus('Cache cleared');
   });
 }
 
-// SETTINGS - SIDEBAR
-if (sidebarElements.adBlockToggle) {
-  sidebarElements.adBlockToggle.addEventListener('change', async () => {
-    settings.adBlock = sidebarElements.adBlockToggle.checked;
-    saveSettings();
-    if (elements.adBlockToggle) elements.adBlockToggle.checked = settings.adBlock;
-    await window.browserAPI.setAdBlock(settings.adBlock);
+// BOOKMARKS
+const bookmarkButton = document.getElementById('bookmarkButton');
+if (bookmarkButton) {
+  bookmarkButton.addEventListener('click', () => {
+    const currentTab = getCurrentTab();
+    if (!currentTab) return;
+    
+    const bookmarks = getBookmarks();
+    const alreadySaved = bookmarks.some(b => b.url === currentTab.url);
+    if (alreadySaved) return;
+
+    bookmarks.push({ title: currentTab.title || currentTab.url, url: currentTab.url });
+    setBookmarks(bookmarks);
+    renderBookmarks();
   });
 }
 
-if (sidebarElements.trackingToggle) {
-  sidebarElements.trackingToggle.addEventListener('change', async () => {
-    settings.trackingProtection = sidebarElements.trackingToggle.checked;
-    saveSettings();
-    if (elements.trackingToggle) elements.trackingToggle.checked = settings.trackingProtection;
-    await window.browserAPI.setTrackingProtection(settings.trackingProtection);
+// PRIVATE WINDOW
+const privateWindowButton = document.getElementById('privateWindowButton');
+if (privateWindowButton) {
+  privateWindowButton.addEventListener('click', () => {
+    window.browserAPI.openPrivateWindow?.();
   });
 }
 
-if (sidebarElements.applyProxyButton) {
-  sidebarElements.applyProxyButton.addEventListener('click', async () => {
-    settings.proxyEnabled = sidebarElements.proxyToggle.checked;
-    settings.proxyHost = sidebarElements.proxyHost.value.trim();
-    settings.proxyPort = sidebarElements.proxyPort.value.trim();
-    saveSettings();
-
-    if (elements.proxyToggle) elements.proxyToggle.checked = settings.proxyEnabled;
-    if (elements.proxyHost) elements.proxyHost.value = settings.proxyHost;
-    if (elements.proxyPort) elements.proxyPort.value = settings.proxyPort;
-
-    try {
-      await window.browserAPI.setProxy({
-        enabled: settings.proxyEnabled,
-        host: settings.proxyHost,
-        port: settings.proxyPort
-      });
-      setStatus('Proxy settings updated');
-    } catch {
-      setStatus('Invalid proxy settings');
-    }
-  });
-}
-
-if (sidebarElements.clearCacheButton) {
-  sidebarElements.clearCacheButton.addEventListener('click', async () => {
-    await window.browserAPI.clearCache();
-    setStatus('Cache cleared');
-  });
-}
-
-if (sidebarElements.clearAllDataButton) {
-  sidebarElements.clearAllDataButton.addEventListener('click', async () => {
-    if (confirm('Are you sure? This will clear all browser data including history, cookies, and bookmarks.')) {
+// CLEAR ALL DATA
+const clearAllDataButton = document.getElementById('clearAllData');
+if (clearAllDataButton) {
+  clearAllDataButton.addEventListener('click', () => {
+    if (confirm('Clear all browser data? (history, cookies, bookmarks)')) {
       localStorage.clear();
       sessionStorage.clear();
-      await window.browserAPI.clearCache();
-      setStatus('All data cleared');
+      window.browserAPI.clearCache?.();
       renderBookmarks();
     }
   });
 }
 
-// BOOKMARKS
-if (elements.bookmarkButton) {
-  elements.bookmarkButton.addEventListener('click', () => {
-    const bookmarks = getBookmarks();
-    const alreadySaved = bookmarks.some((bookmark) => bookmark.url === currentUrl);
-    if (alreadySaved) {
-      setStatus('Bookmark already exists');
-      return;
-    }
+// BROWSER STATE
+window.browserAPI.onBrowserState?.((state) => {
+  const currentTab = getCurrentTab();
+  if (!currentTab) return;
 
-    bookmarks.push({ title: currentTitle || currentUrl, url: currentUrl });
-    setBookmarks(bookmarks);
-    renderBookmarks();
-    setStatus('Bookmark added');
-  });
-}
+  currentTab.url = state.url || DEFAULT_HOMEPAGE;
+  currentTab.title = state.title || 'New Tab';
+  currentTab.canGoBack = Boolean(state.canGoBack);
+  currentTab.canGoForward = Boolean(state.canGoForward);
 
-if (elements.bookmarkList) {
-  elements.bookmarkList.addEventListener('change', async () => {
-    if (!elements.bookmarkList.value) return;
-
-    const index = Number(elements.bookmarkList.value);
-    if (Number.isNaN(index)) return;
-
-    const bookmarks = getBookmarks();
-    const bookmark = bookmarks[index];
-    if (!bookmark) return;
-
-    elements.addressBar.value = bookmark.url;
-    await window.browserAPI.navigate('go', bookmark.url);
-    elements.bookmarkList.value = '';
-  });
-}
-
-// BROWSER STATE UPDATES
-window.browserAPI.onBrowserState((state) => {
-  currentUrl = state.url || DEFAULT_HOMEPAGE;
-  currentTitle = state.title || currentUrl;
-  canGoBack = Boolean(state.canGoBack);
-  canGoForward = Boolean(state.canGoForward);
-  if (elements.addressBar) elements.addressBar.value = currentUrl;
-  document.title = state.title ? `${state.title} - Me Browser` : 'Me Browser';
+  document.title = `${state.title} - Me Browser`;
+  updateAddressBar();
   updateNavButtons();
+  renderTabs();
 });
 
-window.browserAPI.onLoadingState((loading) => {
-  if (elements.loadingSpinner) {
-    elements.loadingSpinner.classList.toggle('hidden', !loading);
-  }
+window.browserAPI.onLoadingState?.((loading) => {
+  elements.loadingSpinner.classList.toggle('hidden', !loading);
 });
 
-window.browserAPI.onDownloadState((download) => {
-  setStatus(`Download ${download.state}: ${download.filename}`);
+window.browserAPI.onDownloadState?.((download) => {
+  console.log('Download:', download);
 });
 
 // INITIALIZE
-applySettingsToUi();
 renderBookmarks();
-updateNavButtons();
-pushSettingsToMain();
+createNewTab();
