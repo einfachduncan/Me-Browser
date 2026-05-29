@@ -1,11 +1,9 @@
 const fs = require('fs/promises');
 const path = require('path');
 const os = require('os');
-const { promisify } = require('util');
-const { execFile } = require('child_process');
+const extract = require('extract-zip');
 const { dialog, Notification } = require('electron');
 
-const execFileAsync = promisify(execFile);
 const EXTENSION_WORLD_BASE = 1000;
 const ALLOWED_PERMISSIONS = new Set([
   'webRequest',
@@ -376,6 +374,7 @@ class ExtensionManager {
 
   getWebRequestBlockResult(details) {
     const url = details.url || '';
+    const loweredUrl = url.toLowerCase();
 
     for (const extension of this.extensions.values()) {
       if (!extension.config.installed || !extension.config.enabled) {
@@ -397,7 +396,10 @@ class ExtensionManager {
         continue;
       }
 
-      const shouldBlock = blockedPatterns.some((pattern) => matchesPattern(url, pattern) || url.toLowerCase().includes(pattern.toLowerCase().replace(/\*/g, '')));
+      const shouldBlock = blockedPatterns.some((pattern) => {
+        const loweredPattern = pattern.toLowerCase().replace(/\*/g, '');
+        return matchesPattern(url, pattern) || (loweredPattern && loweredUrl.includes(loweredPattern));
+      });
       if (shouldBlock) {
         extension.config.stats.blockedRequests += 1;
         return { cancel: true, extensionId: extension.id };
@@ -584,8 +586,17 @@ class ExtensionManager {
     switch (`${extensionId}:${actionId}`) {
       case 'screenshot:capture-visible': {
         const image = await currentView.webContents.capturePage();
-        const outputPath = path.join(os.homedir(), 'Pictures', `me-browser-${Date.now()}.png`);
-        await fs.mkdir(path.dirname(outputPath), { recursive: true });
+        const saveResult = await dialog.showSaveDialog(this.getMainWindow(), {
+          title: 'Save Screenshot',
+          defaultPath: path.join(os.homedir(), `me-browser-${Date.now()}.png`),
+          filters: [{ name: 'PNG Images', extensions: ['png'] }]
+        });
+
+        if (saveResult.canceled || !saveResult.filePath) {
+          return { success: false, message: 'Screenshot capture cancelled' };
+        }
+
+        const outputPath = saveResult.filePath;
         await fs.writeFile(outputPath, image.toPNG());
         return { success: true, message: `Saved screenshot to ${outputPath}` };
       }
@@ -630,8 +641,8 @@ class ExtensionManager {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'me-browser-extension-'));
 
     try {
-      await execFileAsync('unzip', ['-q', zipPath, '-d', tempDir]);
-      const sourceDir = await this.findManifestDirectory(tempDir);
+      await extract(zipPath, { dir: tempDir });
+      const sourceDir = await this.findManifestDirectory(tempDir, 0, 3);
       const manifest = await safeJsonParse(path.join(sourceDir, 'manifest.json'), null);
       this.validateManifest(manifest);
 
@@ -667,7 +678,11 @@ class ExtensionManager {
     }
   }
 
-  async findManifestDirectory(rootDir) {
+  async findManifestDirectory(rootDir, depth = 0, maxDepth = 3) {
+    if (depth > maxDepth) {
+      throw new Error('manifest.json was not found within the supported package depth');
+    }
+
     const entries = await fs.readdir(rootDir, { withFileTypes: true });
     if (entries.some((entry) => entry.isFile() && entry.name === 'manifest.json')) {
       return rootDir;
@@ -679,7 +694,7 @@ class ExtensionManager {
       }
       const candidate = path.join(rootDir, entry.name);
       try {
-        return await this.findManifestDirectory(candidate);
+        return await this.findManifestDirectory(candidate, depth + 1, maxDepth);
       } catch {
         // Continue searching.
       }

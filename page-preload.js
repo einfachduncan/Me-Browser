@@ -18,35 +18,49 @@ const invoke = (extensionId, method, ...args) => ipcRenderer.invoke('extensions:
   args
 });
 
-const createApi = (descriptor) => ({
-  tabs: {
-    query: () => invoke(descriptor.id, 'tabs.query'),
-    executeScript: (details = {}) => invoke(descriptor.id, 'tabs.executeScript', details)
-  },
-  storage: {
-    local: {
-      get: (query) => invoke(descriptor.id, 'storage.get', query),
-      set: (payload = {}) => invoke(descriptor.id, 'storage.set', payload)
+const createPermissionGuard = (descriptor) => {
+  const permissions = new Set(Array.isArray(descriptor.permissions) ? descriptor.permissions : []);
+  return (permission, callback) => (...args) => {
+    if (!permissions.has(permission)) {
+      return Promise.reject(new Error(`${descriptor.id} does not have ${permission} permission`));
     }
-  },
-  messaging: {
-    send: (channel, payload) => invoke(descriptor.id, 'messaging.send', channel, payload),
-    receive: (channel, callback) => addMessageListener(descriptor.id, channel, callback)
-  },
-  page: {
-    inject: (details = {}) => invoke(descriptor.id, 'page.inject', details)
-  },
-  notifications: {
-    create: (details = {}) => invoke(descriptor.id, 'notifications.create', details)
-  },
-  webRequest: {
-    onBeforeRequest: (details = {}) => invoke(descriptor.id, 'webRequest.onBeforeRequest', details)
-  },
-  cookieStore: {
-    getAll: (details = {}) => invoke(descriptor.id, 'cookieStore.getAll', details),
-    remove: (details = {}) => invoke(descriptor.id, 'cookieStore.remove', details)
-  }
-});
+    return callback(...args);
+  };
+};
+
+const createApi = (descriptor) => {
+  const requirePermission = createPermissionGuard(descriptor);
+
+  return {
+    tabs: {
+      query: requirePermission('tabs', () => invoke(descriptor.id, 'tabs.query')),
+      executeScript: requirePermission('scripting', (details = {}) => invoke(descriptor.id, 'tabs.executeScript', details))
+    },
+    storage: {
+      local: {
+        get: requirePermission('storage', (query) => invoke(descriptor.id, 'storage.get', query)),
+        set: requirePermission('storage', (payload = {}) => invoke(descriptor.id, 'storage.set', payload))
+      }
+    },
+    messaging: {
+      send: (channel, payload) => invoke(descriptor.id, 'messaging.send', channel, payload),
+      receive: (channel, callback) => addMessageListener(descriptor.id, channel, callback)
+    },
+    page: {
+      inject: requirePermission('scripting', (details = {}) => invoke(descriptor.id, 'page.inject', details))
+    },
+    notifications: {
+      create: requirePermission('notifications', (details = {}) => invoke(descriptor.id, 'notifications.create', details))
+    },
+    webRequest: {
+      onBeforeRequest: requirePermission('webRequest', (details = {}) => invoke(descriptor.id, 'webRequest.onBeforeRequest', details))
+    },
+    cookieStore: {
+      getAll: requirePermission('cookieStore', (details = {}) => invoke(descriptor.id, 'cookieStore.getAll', details)),
+      remove: requirePermission('cookieStore', (details = {}) => invoke(descriptor.id, 'cookieStore.remove', details))
+    }
+  };
+};
 
 ipcRenderer.on('extensions:bootstrap', (_event, descriptors = []) => {
   descriptors.forEach((descriptor) => {

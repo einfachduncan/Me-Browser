@@ -575,8 +575,8 @@ if (elements.saveExtensionSettingsButton) {
       await window.browserAPI.saveExtensionSettings(extensionState.selectedId, nextSettings);
       setStatus('Extension settings saved');
       await selectExtension(extensionState.selectedId);
-    } catch {
-      setStatus('Invalid extension settings JSON');
+    } catch (error) {
+      setStatus(`Invalid extension settings JSON: ${error.message}`);
     }
   });
 }
