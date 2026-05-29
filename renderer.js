@@ -1,4 +1,5 @@
 const DEFAULT_HOMEPAGE = 'https://www.google.com';
+const GOOGLE_SEARCH_URL = 'https://www.google.com/search?q=';
 
 const elements = {
   backButton: document.getElementById('backButton'),
@@ -106,14 +107,43 @@ const pushSettingsToMain = async () => {
   });
 };
 
+const isValidUrl = (string) => {
+  try {
+    new URL(string);
+    return true;
+  } catch (_) {
+    return false;
+  }
+};
+
+const processInput = (value) => {
+  value = value.trim();
+  if (!value) return null;
+
+  // If it already looks like a URL (has protocol or domain-like structure)
+  if (value.includes('://') || value.includes('.') && !value.includes(' ')) {
+    // Add https:// if no protocol
+    if (!value.includes('://')) {
+      value = 'https://' + value;
+    }
+    return value;
+  }
+
+  // Otherwise treat as search query
+  return GOOGLE_SEARCH_URL + encodeURIComponent(value);
+};
+
 const navigateToInput = async () => {
   const value = elements.addressBar.value.trim();
   if (!value) {
     return;
   }
 
+  const urlToLoad = processInput(value);
+  if (!urlToLoad) return;
+
   try {
-    await window.browserAPI.navigate('go', value);
+    await window.browserAPI.navigate('go', urlToLoad);
   } catch {
     setStatus('Navigation failed');
   }
