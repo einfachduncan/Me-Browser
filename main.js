@@ -109,7 +109,7 @@ const applyProxySettings = async () => {
 };
 
 const isValidProxyHost = (host) => /^[a-zA-Z0-9.-]+$/.test(host);
-const isValidProxyPort = (port) => /^\d{2,5}$/.test(port) && Number(port) <= 65535;
+const isValidProxyPort = (port) => /^\d{1,5}$/.test(port) && Number(port) >= 1 && Number(port) <= 65535;
 
 const createWindow = async () => {
   mainWindow = new BrowserWindow({
