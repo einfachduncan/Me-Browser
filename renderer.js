@@ -18,7 +18,10 @@ const elements = {
   clearCacheButton: document.getElementById('clearCacheButton'),
   bookmarkButton: document.getElementById('bookmarkButton'),
   bookmarkList: document.getElementById('bookmarkList'),
-  statusText: document.getElementById('statusText')
+  statusText: document.getElementById('statusText'),
+  tabsContainer: document.getElementById('tabsContainer'),
+  newTabButton: document.getElementById('newTabButton'),
+  webViewsContainer: document.getElementById('webViewsContainer')
 };
 
 const settings = {
@@ -29,11 +32,10 @@ const settings = {
   proxyPort: localStorage.getItem('proxyPort') || ''
 };
 
-let currentUrl = DEFAULT_HOMEPAGE;
-let currentTitle = 'Me Browser';
-let canGoBack = false;
-let canGoForward = false;
+let tabs = [];
+let currentTabId = null;
 let statusTimeoutId;
+let nextTabId = 1;
 
 const getBookmarks = () => {
   try {
@@ -58,11 +60,6 @@ const setStatus = (text) => {
       elements.statusText.textContent = '';
     }
   }, 2500);
-};
-
-const updateNavButtons = () => {
-  elements.backButton.disabled = !canGoBack;
-  elements.forwardButton.disabled = !canGoForward;
 };
 
 const renderBookmarks = () => {
@@ -107,53 +104,122 @@ const pushSettingsToMain = async () => {
   });
 };
 
-const isValidUrl = (string) => {
-  try {
-    new URL(string);
-    return true;
-  } catch (_) {
-    return false;
-  }
-};
-
 const processInput = (value) => {
   value = value.trim();
   if (!value) return null;
 
-  // If it already looks like a URL (has protocol or domain-like structure)
-  if (value.includes('://') || value.includes('.') && !value.includes(' ')) {
-    // Add https:// if no protocol
+  if (value.includes('://') || (value.includes('.') && !value.includes(' '))) {
     if (!value.includes('://')) {
       value = 'https://' + value;
     }
     return value;
   }
 
-  // Otherwise treat as search query
   return GOOGLE_SEARCH_URL + encodeURIComponent(value);
+};
+
+const getCurrentTab = () => tabs.find(t => t.id === currentTabId);
+
+const updateNavButtons = () => {
+  const currentTab = getCurrentTab();
+  elements.backButton.disabled = !currentTab || !currentTab.canGoBack;
+  elements.forwardButton.disabled = !currentTab || !currentTab.canGoForward;
+};
+
+const updateAddressBar = () => {
+  const currentTab = getCurrentTab();
+  elements.addressBar.value = currentTab ? currentTab.url : DEFAULT_HOMEPAGE;
+};
+
+const renderTabs = () => {
+  elements.tabsContainer.innerHTML = '';
+  tabs.forEach(tab => {
+    const tabEl = document.createElement('div');
+    tabEl.className = `tab ${tab.id === currentTabId ? 'active' : ''}`;
+    tabEl.innerHTML = `
+      <span class="tab-title" title="${tab.title}">${tab.title}</span>
+      <button class="tab-close">×</button>
+    `;
+    
+    tabEl.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('tab-close')) {
+        switchTab(tab.id);
+      }
+    });
+    
+    tabEl.querySelector('.tab-close').addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeTab(tab.id);
+    });
+    
+    elements.tabsContainer.appendChild(tabEl);
+  });
+};
+
+const createNewTab = async () => {
+  const tabId = currentTabId + nextTabId;
+  nextTabId++;
+  
+  const tab = {
+    id: tabId,
+    title: 'New Tab',
+    url: DEFAULT_HOMEPAGE,
+    canGoBack: false,
+    canGoForward: false
+  };
+  
+  tabs.push(tab);
+  switchTab(tabId);
+  renderTabs();
+  
+  await window.browserAPI.createTab(tabId);
+};
+
+const switchTab = async (tabId) => {
+  currentTabId = tabId;
+  await window.browserAPI.switchTab(tabId);
+  updateAddressBar();
+  updateNavButtons();
+  renderTabs();
+};
+
+const closeTab = async (tabId) => {
+  tabs = tabs.filter(t => t.id !== tabId);
+  
+  if (currentTabId === tabId) {
+    if (tabs.length > 0) {
+      switchTab(tabs[tabs.length - 1].id);
+    } else {
+      currentTabId = null;
+      await createNewTab();
+    }
+  } else {
+    renderTabs();
+  }
+  
+  await window.browserAPI.closeTab(tabId);
 };
 
 const navigateToInput = async () => {
   const value = elements.addressBar.value.trim();
-  if (!value) {
-    return;
-  }
+  if (!value) return;
 
   const urlToLoad = processInput(value);
   if (!urlToLoad) return;
 
   try {
-    await window.browserAPI.navigate('go', urlToLoad);
+    await window.browserAPI.navigate(currentTabId, 'go', urlToLoad);
   } catch {
     setStatus('Navigation failed');
   }
 };
 
-elements.backButton.addEventListener('click', () => window.browserAPI.navigate('back'));
-elements.forwardButton.addEventListener('click', () => window.browserAPI.navigate('forward'));
-elements.reloadButton.addEventListener('click', () => window.browserAPI.navigate('reload'));
-elements.homeButton.addEventListener('click', () => window.browserAPI.navigate('home'));
+elements.backButton.addEventListener('click', () => window.browserAPI.navigate(currentTabId, 'back'));
+elements.forwardButton.addEventListener('click', () => window.browserAPI.navigate(currentTabId, 'forward'));
+elements.reloadButton.addEventListener('click', () => window.browserAPI.navigate(currentTabId, 'reload'));
+elements.homeButton.addEventListener('click', () => window.browserAPI.navigate(currentTabId, 'home'));
 elements.goButton.addEventListener('click', navigateToInput);
+elements.newTabButton.addEventListener('click', createNewTab);
 
 elements.addressBar.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') {
@@ -198,14 +264,17 @@ elements.clearCacheButton.addEventListener('click', async () => {
 });
 
 elements.bookmarkButton.addEventListener('click', () => {
+  const currentTab = getCurrentTab();
+  if (!currentTab) return;
+  
   const bookmarks = getBookmarks();
-  const alreadySaved = bookmarks.some((bookmark) => bookmark.url === currentUrl);
+  const alreadySaved = bookmarks.some((bookmark) => bookmark.url === currentTab.url);
   if (alreadySaved) {
     setStatus('Bookmark already exists');
     return;
   }
 
-  bookmarks.push({ title: currentTitle || currentUrl, url: currentUrl });
+  bookmarks.push({ title: currentTab.title || currentTab.url, url: currentTab.url });
   setBookmarks(bookmarks);
   renderBookmarks();
   setStatus('Bookmark added');
@@ -228,21 +297,30 @@ elements.bookmarkList.addEventListener('change', async () => {
   }
 
   elements.addressBar.value = bookmark.url;
-  await window.browserAPI.navigate('go', bookmark.url);
+  await window.browserAPI.navigate(currentTabId, 'go', bookmark.url);
   elements.bookmarkList.value = '';
 });
 
-window.browserAPI.onBrowserState((state) => {
-  currentUrl = state.url || DEFAULT_HOMEPAGE;
-  currentTitle = state.title || currentUrl;
-  canGoBack = Boolean(state.canGoBack);
-  canGoForward = Boolean(state.canGoForward);
-  elements.addressBar.value = currentUrl;
-  document.title = state.title ? `${state.title} - Me Browser` : 'Me Browser';
-  updateNavButtons();
+window.browserAPI.onBrowserState((tabId, state) => {
+  const tab = tabs.find(t => t.id === tabId);
+  if (!tab) return;
+  
+  tab.url = state.url || DEFAULT_HOMEPAGE;
+  tab.title = state.title || 'New Tab';
+  tab.canGoBack = Boolean(state.canGoBack);
+  tab.canGoForward = Boolean(state.canGoForward);
+  
+  document.title = `${tab.title} - Me Browser`;
+  
+  if (tabId === currentTabId) {
+    updateAddressBar();
+    updateNavButtons();
+  }
+  
+  renderTabs();
 });
 
-window.browserAPI.onLoadingState((loading) => {
+window.browserAPI.onLoadingState((tabId, loading) => {
   elements.loadingSpinner.classList.toggle('hidden', !loading);
 });
 
@@ -252,5 +330,5 @@ window.browserAPI.onDownloadState((download) => {
 
 applySettingsToUi();
 renderBookmarks();
-updateNavButtons();
 pushSettingsToMain();
+createNewTab();

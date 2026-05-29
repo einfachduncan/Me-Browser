@@ -22,6 +22,7 @@ html, body {
 body {
   background: var(--bg);
   color: var(--text);
+  overflow: hidden;
 }
 
 .toolbar {
@@ -36,6 +37,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 130px;
 }
 
 .nav-bar {
@@ -132,6 +134,113 @@ body {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* TABS */
+.tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-height: 32px;
+  overflow-x: auto;
+  border-top: 1px solid #262b3d;
+  padding-top: 6px;
+}
+
+.tabs-container {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.tabs-container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tabs-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tabs-container::-webkit-scrollbar-thumb {
+  background: #30374d;
+  border-radius: 2px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 4px 4px 0 0;
+  border: 1px solid #30374d;
+  border-bottom: none;
+  background: var(--surface-alt);
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  position: relative;
+  flex-shrink: 0;
+  max-width: 200px;
+}
+
+.tab:hover {
+  background: #252d3f;
+  color: var(--text);
+}
+
+.tab.active {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--accent);
+  border-bottom-color: var(--surface);
+}
+
+.tab-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab-close {
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  transition: color 0.2s ease;
+  padding: 0;
+}
+
+.tab-close:hover {
+  color: var(--accent);
+}
+
+.new-tab-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid #30374d;
+  background: var(--surface-alt);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.new-tab-btn:hover {
+  border-color: var(--accent);
+  background: #252d3f;
 }
 
 .settings-bar {
@@ -232,6 +341,15 @@ body {
   min-width: 80px;
   text-align: right;
   white-space: nowrap;
+}
+
+.webviews-container {
+  position: fixed;
+  top: 130px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
 }
 
 /* Responsive */

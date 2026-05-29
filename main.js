@@ -1,12 +1,12 @@
 const path = require('path');
 const { app, BrowserWindow, BrowserView, ipcMain, shell, session } = require('electron');
-const filters = require('./filters.json');
 
 const HOMEPAGE = 'https://www.google.com';
-const TOP_BAR_HEIGHT = 104;
+const TOOLBAR_HEIGHT = 130;
 
 let mainWindow;
-let browserView;
+let browserViews = new Map();
+let currentTabId = null;
 let adBlockEnabled = true;
 let trackingProtectionEnabled = true;
 let proxySettings = {
@@ -14,59 +14,23 @@ let proxySettings = {
   host: '',
   port: ''
 };
-const adFilters = Array.isArray(filters) ? filters.filter((entry) => typeof entry === 'string') : [];
 
-const sanitizeUrl = (value) => {
-  if (!value || typeof value !== 'string') {
-    return HOMEPAGE;
-  }
-
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return HOMEPAGE;
-  }
-
-  if (/^https?:\/\//i.test(trimmed)) {
-    return trimmed;
-  }
-
-  return `https://${trimmed}`;
-};
-
-const updateBrowserBounds = () => {
-  if (!mainWindow || !browserView) {
-    return;
-  }
-
-  const [width, height] = mainWindow.getContentSize();
-  browserView.setBounds({
-    x: 0,
-    y: TOP_BAR_HEIGHT,
-    width,
-    height: Math.max(0, height - TOP_BAR_HEIGHT)
-  });
-  browserView.setAutoResize({ width: true, height: true });
-};
-
-const sendBrowserState = () => {
-  if (!mainWindow || mainWindow.isDestroyed() || !browserView) {
-    return;
-  }
-
-  mainWindow.webContents.send('browser:state', {
-    url: browserView.webContents.getURL() || HOMEPAGE,
-    canGoBack: browserView.webContents.canGoBack(),
-    canGoForward: browserView.webContents.canGoForward(),
-    title: browserView.webContents.getTitle() || 'Me Browser'
-  });
-};
-
-const notifyLoading = (isLoading) => {
-  if (!mainWindow || mainWindow.isDestroyed()) {
-    return;
-  }
-  mainWindow.webContents.send('browser:loading', isLoading);
-};
+// Ad blocker filter list
+const AD_FILTERS = [
+  '*doubleclick*',
+  '*googlesyndication*',
+  '*ads*',
+  '*advertisement*',
+  '*adservice*',
+  '*adserver*',
+  '*adnetwork*',
+  '*tracking*',
+  '*analytics*',
+  '*facebook.com/tr*',
+  '*stats*',
+  '*beacon*',
+  '*crashlytics*'
+];
 
 const shouldBlockByFilter = (requestUrl) => {
   if (!adBlockEnabled || !requestUrl) {
@@ -74,9 +38,9 @@ const shouldBlockByFilter = (requestUrl) => {
   }
 
   const loweredUrl = requestUrl.toLowerCase();
-  return adFilters.some((filter) => {
-    const normalized = filter.toLowerCase().replaceAll('*', '');
-    return normalized && loweredUrl.includes(normalized);
+  return AD_FILTERS.some((filter) => {
+    const pattern = filter.toLowerCase().replace(/\*/g, '');
+    return pattern && loweredUrl.includes(pattern);
   });
 };
 
@@ -112,6 +76,39 @@ const isValidProxyHost = (host) =>
   /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$/.test(host);
 const isValidProxyPort = (port) => /^\d{1,5}$/.test(port) && Number(port) >= 1 && Number(port) <= 65535;
 
+const updateBrowserViewBounds = () => {
+  if (!mainWindow) return;
+  const [width, height] = mainWindow.getContentSize();
+  
+  browserViews.forEach((view) => {
+    view.setBounds({
+      x: 0,
+      y: TOOLBAR_HEIGHT,
+      width,
+      height: Math.max(0, height - TOOLBAR_HEIGHT)
+    });
+  });
+};
+
+const sendBrowserState = (tabId) => {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  
+  const view = browserViews.get(tabId);
+  if (!view) return;
+
+  mainWindow.webContents.send('browser:state', tabId, {
+    url: view.webContents.getURL() || HOMEPAGE,
+    canGoBack: view.webContents.canGoBack(),
+    canGoForward: view.webContents.canGoForward(),
+    title: view.webContents.getTitle() || 'New Tab'
+  });
+};
+
+const notifyLoading = (isLoading) => {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send('browser:loading', currentTabId, isLoading);
+};
+
 const createWindow = async () => {
   mainWindow = new BrowserWindow({
     width: 1320,
@@ -125,38 +122,20 @@ const createWindow = async () => {
     }
   });
 
-  browserView = new BrowserView({
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true
-    }
-  });
-
-  mainWindow.setBrowserView(browserView);
-  updateBrowserBounds();
-
-  mainWindow.on('resize', updateBrowserBounds);
+  mainWindow.on('resize', updateBrowserViewBounds);
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
   });
 
-  browserView.webContents.on('did-start-loading', () => notifyLoading(true));
-  browserView.webContents.on('did-stop-loading', () => {
-    notifyLoading(false);
-    sendBrowserState();
-  });
-
-  browserView.webContents.on('did-navigate', sendBrowserState);
-  browserView.webContents.on('did-navigate-in-page', sendBrowserState);
-  browserView.webContents.on('page-title-updated', sendBrowserState);
-
   const ses = session.defaultSession;
+  
+  // Ad blocker
   ses.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, callback) => {
     callback({ cancel: shouldBlockByFilter(details.url) });
   });
 
+  // Tracking protection & DNT header
   ses.webRequest.onBeforeSendHeaders({ urls: ['*://*/*'] }, (details, callback) => {
     const requestHeaders = { ...details.requestHeaders, DNT: '1' };
 
@@ -171,10 +150,9 @@ const createWindow = async () => {
     callback({ requestHeaders });
   });
 
+  // Download handler
   ses.on('will-download', (event, item) => {
-    if (!mainWindow || mainWindow.isDestroyed()) {
-      return;
-    }
+    if (!mainWindow || mainWindow.isDestroyed()) return;
 
     mainWindow.webContents.send('browser:download', {
       filename: item.getFilename(),
@@ -190,43 +168,89 @@ const createWindow = async () => {
   });
 
   await applyProxySettings();
-
   await mainWindow.loadFile(path.join(__dirname, 'index.html'));
-  await browserView.webContents.loadURL(HOMEPAGE);
 };
 
-ipcMain.handle('browser:navigate', async (_event, payload = {}) => {
-  if (!browserView) {
-    return;
-  }
+// Tab management
+ipcMain.handle('browser:createTab', async (_event, tabId) => {
+  const view = new BrowserView({
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true
+    }
+  });
 
-  const { action, url } = payload;
+  mainWindow.addBrowserView(view);
+  browserViews.set(tabId, view);
+  
+  view.webContents.loadURL(HOMEPAGE);
+  
+  view.webContents.on('did-start-loading', () => notifyLoading(true));
+  view.webContents.on('did-stop-loading', () => {
+    notifyLoading(false);
+    sendBrowserState(tabId);
+  });
+
+  view.webContents.on('did-navigate', () => sendBrowserState(tabId));
+  view.webContents.on('did-navigate-in-page', () => sendBrowserState(tabId));
+  view.webContents.on('page-title-updated', () => sendBrowserState(tabId));
+  
+  updateBrowserViewBounds();
+});
+
+ipcMain.handle('browser:switchTab', async (_event, tabId) => {
+  currentTabId = tabId;
+  
+  browserViews.forEach((view, id) => {
+    if (id === tabId) {
+      mainWindow.setTopBrowserView(view);
+      view.webContents.focus();
+    }
+  });
+  
+  sendBrowserState(tabId);
+});
+
+ipcMain.handle('browser:closeTab', async (_event, tabId) => {
+  const view = browserViews.get(tabId);
+  if (view) {
+    mainWindow.removeBrowserView(view);
+    browserViews.delete(tabId);
+  }
+});
+
+// Navigation
+ipcMain.handle('browser:navigate', async (_event, tabId, action, url) => {
+  const view = browserViews.get(tabId);
+  if (!view) return;
 
   switch (action) {
     case 'back':
-      if (browserView.webContents.canGoBack()) {
-        browserView.webContents.goBack();
+      if (view.webContents.canGoBack()) {
+        view.webContents.goBack();
       }
       break;
     case 'forward':
-      if (browserView.webContents.canGoForward()) {
-        browserView.webContents.goForward();
+      if (view.webContents.canGoForward()) {
+        view.webContents.goForward();
       }
       break;
     case 'reload':
-      browserView.webContents.reload();
+      view.webContents.reload();
       break;
     case 'home':
-      await browserView.webContents.loadURL(HOMEPAGE);
+      await view.webContents.loadURL(HOMEPAGE);
       break;
     case 'go':
-      await browserView.webContents.loadURL(sanitizeUrl(url));
-      break;
-    default:
+      if (url && typeof url === 'string') {
+        await view.webContents.loadURL(url);
+      }
       break;
   }
 });
 
+// Settings
 ipcMain.handle('browser:setAdBlock', (_event, enabled) => {
   adBlockEnabled = Boolean(enabled);
   return adBlockEnabled;
