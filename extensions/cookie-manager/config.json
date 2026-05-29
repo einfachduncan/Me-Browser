@@ -1,0 +1,15 @@
+{
+  "installed": true,
+  "enabled": true,
+  "settings": {
+    "autoClearOnExit": false,
+    "favorites": []
+  },
+  "storage": {},
+  "runtime": {
+    "blockPatterns": []
+  },
+  "stats": {
+    "blockedRequests": 0
+  }
+}

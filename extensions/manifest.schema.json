@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Me Browser Extension Manifest",
+  "type": "object",
+  "required": ["id", "name", "version", "description", "permissions"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9-]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "icon": {
+      "type": "string"
+    },
+    "entry": {
+      "type": "string"
+    },
+    "settings": {
+      "type": "string"
+    },
+    "bundled": {
+      "type": "boolean"
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["webRequest", "storage", "tabs", "scripting", "notifications", "cookieStore"]
+      }
+    },
+    "defaultConfig": {
+      "type": "object"
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" }
+        }
+      }
+    },
+    "contentScripts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "matches": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "css": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

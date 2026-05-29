@@ -24,3 +24,4 @@ npm start
 - Local bookmarks persistence (`localStorage`)
 - Download state notifications
 - URL auto-fix (`https://` prefix)
+- Bundled/browser-installable extension system with a manager UI, manifest validation, and isolated content script injection

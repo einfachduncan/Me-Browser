@@ -332,6 +332,16 @@ body {
   background: #252d3f;
 }
 
+.danger-btn {
+  border-color: #6a2e3f;
+  color: #ffd8e1;
+}
+
+.danger-btn:hover {
+  border-color: #ff5b87;
+  background: #40202a;
+}
+
 .bookmark-group {
   display: flex;
   align-items: center;
@@ -365,10 +375,206 @@ body {
   flex-shrink: 0;
 }
 
+.private-btn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid #7d3b54;
+  background: #311822;
+  color: #ffe4ed;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.private-btn:hover {
+  border-color: #ff5b87;
+  background: #45212f;
+}
+
 .webviews-container {
   flex: 1;
   overflow: hidden;
   position: relative;
+}
+
+.extensions-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 8, 16, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 3000;
+}
+
+.extensions-modal.hidden {
+  display: none;
+}
+
+.extensions-dialog {
+  width: min(1100px, 100%);
+  max-height: min(780px, calc(100vh - 48px));
+  background: #111520;
+  border: 1px solid #2f3850;
+  border-radius: 18px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.extensions-dialog-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #262b3d;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.extensions-dialog-header h2,
+.extensions-column h3,
+.extensions-detail h3 {
+  margin: 0 0 6px;
+}
+
+.extensions-dialog-header p,
+.extension-detail-meta,
+.extension-detail-permissions,
+.extension-detail-stats {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.extensions-dialog-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.extensions-layout {
+  display: grid;
+  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+  min-height: 0;
+  flex: 1;
+}
+
+.extensions-column,
+.extensions-detail {
+  padding: 20px 24px;
+  min-height: 0;
+}
+
+.extensions-column {
+  border-right: 1px solid #262b3d;
+  overflow-y: auto;
+}
+
+.extensions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.extension-card {
+  background: var(--surface);
+  border: 1px solid #30374d;
+  border-radius: 14px;
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.extension-card:hover,
+.extension-card.selected {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.extension-card-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.extension-card-icon {
+  font-size: 22px;
+}
+
+.extension-card-version {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.extension-card-description {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 10px 0;
+}
+
+.extension-card-permissions {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.extension-card-actions,
+.extension-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.extensions-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+}
+
+.extension-settings-frame {
+  width: 100%;
+  min-height: 140px;
+  border-radius: 12px;
+  border: 1px solid #30374d;
+  background: var(--surface);
+}
+
+.extension-settings-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.extension-settings-editor {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  border-radius: 12px;
+  border: 1px solid #30374d;
+  background: #0d1119;
+  color: var(--text);
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.extension-settings-editor:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.extensions-empty {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
 }
 
 /* Responsive */
@@ -381,5 +587,14 @@ body {
 @media (max-width: 900px) {
   .bookmark-group {
     display: none;
+  }
+
+  .extensions-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .extensions-column {
+    border-right: none;
+    border-bottom: 1px solid #262b3d;
   }
 }

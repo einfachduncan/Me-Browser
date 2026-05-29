@@ -1,0 +1,22 @@
+{
+  "id": "screenshot",
+  "name": "Screenshot Tool",
+  "version": "1.0.0",
+  "description": "Capture the visible page, annotate externally, and save the PNG to disk.",
+  "icon": "📸",
+  "entry": "extension.js",
+  "settings": "settings.html",
+  "bundled": true,
+  "permissions": ["tabs", "notifications"],
+  "actions": [
+    {
+      "id": "capture-visible",
+      "label": "Capture visible page"
+    }
+  ],
+  "defaultConfig": {
+    "format": "png",
+    "copyToClipboard": false,
+    "saveFolder": "Pictures"
+  }
+}

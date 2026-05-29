@@ -1,0 +1,16 @@
+{
+  "installed": true,
+  "enabled": true,
+  "settings": {
+    "blockPatterns": ["*doubleclick*", "*googlesyndication*", "*adservice*", "*analytics*"],
+    "whitelist": [],
+    "filterLists": ["EasyList", "uBlock Filters"]
+  },
+  "storage": {},
+  "runtime": {
+    "blockPatterns": []
+  },
+  "stats": {
+    "blockedRequests": 0
+  }
+}

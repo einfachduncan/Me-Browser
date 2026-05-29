@@ -1,0 +1,16 @@
+{
+  "installed": true,
+  "enabled": true,
+  "settings": {
+    "savedGroups": [],
+    "quickSwitcher": true,
+    "closeDuplicatesOnDemand": true
+  },
+  "storage": {},
+  "runtime": {
+    "blockPatterns": []
+  },
+  "stats": {
+    "blockedRequests": 0
+  }
+}

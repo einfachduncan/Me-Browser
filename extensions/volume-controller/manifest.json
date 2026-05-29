@@ -1,0 +1,22 @@
+{
+  "id": "volume-controller",
+  "name": "Volume Controller",
+  "version": "1.0.0",
+  "description": "Applies remembered volume, brightness, and contrast settings to media-heavy sites.",
+  "icon": "🔊",
+  "entry": "extension.js",
+  "settings": "settings.html",
+  "bundled": true,
+  "permissions": ["storage", "scripting", "tabs"],
+  "defaultConfig": {
+    "volume": 0.8,
+    "brightness": 1,
+    "contrast": 1,
+    "supportedSites": ["youtube.com", "vimeo.com"]
+  },
+  "contentScripts": [
+    {
+      "matches": ["*://*.youtube.com/*", "*://*.vimeo.com/*"]
+    }
+  ]
+}
