@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Me Browser - Private</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      :root {
+        --bg: #2a0f1a;
+        --surface: #3d1525;
+        --surface-alt: #5a1a3a;
+        --accent: #ff1744;
+      }
+      .toolbar {
+        background: linear-gradient(180deg, #4a1530 0%, #2a0f1a 100%);
+      }
+      .private-mode-indicator {
+        color: #ff1744;
+        font-weight: bold;
+        margin-right: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="toolbar">
+      <div class="nav-bar">
+        <div class="nav-controls">
+          <button id="backButton" title="Back" class="nav-btn">←</button>
+          <button id="forwardButton" title="Forward" class="nav-btn">→</button>
+          <button id="reloadButton" title="Reload" class="nav-btn">⟳</button>
+          <button id="homeButton" title="Home" class="nav-btn">⌂</button>
+        </div>
+        <div class="private-mode-indicator">🔒 PRIVATE MODE</div>
+        <input id="addressBar" type="text" placeholder="Search or enter URL..." autocomplete="off" />
+        <button id="goButton" class="go-btn">Go</button>
+        <div id="loadingSpinner" class="spinner hidden"></div>
+      </div>
+
+      <div class="tabs-bar">
+        <div id="tabsContainer" class="tabs-container"></div>
+        <button id="newTabButton" class="new-tab-btn">+</button>
+      </div>
+
+      <div class="settings-bar">
+        <span style="color: #ff1744; font-size: 12px; font-weight: bold;">⚠️ Private Mode: No History • No Cookies • No Bookmarks</span>
+      </div>
+    </header>
+
+    <div id="webViewsContainer" class="webviews-container"></div>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>
