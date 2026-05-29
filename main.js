@@ -1,5 +1,7 @@
 const path = require('path');
 const { app, BrowserWindow, BrowserView, ipcMain, shell, session } = require('electron');
+const { ExtensionManager } = require('./extension-manager');
+const { registerExtensionApi } = require('./extension-api');
 
 const HOMEPAGE = 'https://www.google.com';
 const TOOLBAR_HEIGHT = 130;
@@ -8,6 +10,7 @@ let mainWindow;
 let privateWindows = [];
 let browserViews = new Map();
 let currentTabId = null;
+let extensionManager;
 let adBlockEnabled = true;
 let trackingProtectionEnabled = true;
 let proxySettings = {
@@ -176,7 +179,8 @@ const createWindow = async () => {
   
   // Ad blocker
   ses.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, callback) => {
-    callback({ cancel: shouldBlockByFilter(details.url) });
+    const extensionBlockResult = extensionManager?.getWebRequestBlockResult(details) || { cancel: false };
+    callback({ cancel: shouldBlockByFilter(details.url) || extensionBlockResult.cancel });
   });
 
   // Tracking protection & DNT header
@@ -247,7 +251,8 @@ const createPrivateWindow = async () => {
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: true,
-        session: privateSes
+        session: privateSes,
+        preload: path.join(__dirname, 'page-preload.js')
       }
     });
 
@@ -340,12 +345,14 @@ ipcMain.handle('browser:createTab', async (_event, tabId) => {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: true
+      sandbox: true,
+      preload: path.join(__dirname, 'page-preload.js')
     }
   });
 
   mainWindow.addBrowserView(view);
   browserViews.set(tabId, view);
+  extensionManager.registerTabView(tabId, view);
   
   view.webContents.loadURL(HOMEPAGE);
   
@@ -378,6 +385,7 @@ ipcMain.handle('browser:switchTab', async (_event, tabId) => {
 ipcMain.handle('browser:closeTab', async (_event, tabId) => {
   const view = browserViews.get(tabId);
   if (view) {
+    extensionManager.unregisterTabView(tabId, view);
     mainWindow.removeBrowserView(view);
     browserViews.delete(tabId);
   }
@@ -454,7 +462,19 @@ ipcMain.handle('browser:openPrivateWindow', async () => {
   await createPrivateWindow();
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  extensionManager = new ExtensionManager({
+    rootDir: path.join(__dirname, 'extensions'),
+    getMainWindow: () => mainWindow,
+    getBrowserViews: () => browserViews,
+    getCurrentTabId: () => currentTabId,
+    getHomepage: () => HOMEPAGE
+  });
+
+  await extensionManager.initialize();
+  registerExtensionApi({ ipcMain, extensionManager });
+  await createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

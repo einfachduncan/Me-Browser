@@ -57,6 +57,7 @@
           </select>
         </div>
 
+        <button id="extensionsButton" class="settings-btn">🧩 Extensions</button>
         <button id="privateWindowButton" class="private-btn" title="Open Private Window">🔒 Private</button>
 
         <span id="statusText" class="status-text"></span>
@@ -64,6 +65,43 @@
     </header>
 
     <div id="webViewsContainer" class="webviews-container"></div>
+
+    <div id="extensionsModal" class="extensions-modal hidden">
+      <div class="extensions-dialog">
+        <div class="extensions-dialog-header">
+          <div>
+            <h2>Extensions</h2>
+            <p>Install local packages, manage permissions, and configure bundled add-ons.</p>
+          </div>
+          <div class="extensions-dialog-actions">
+            <button id="installZipButton" class="settings-btn">Install .zip</button>
+            <button id="closeExtensionsButton" class="settings-btn">Close</button>
+          </div>
+        </div>
+
+        <div class="extensions-layout">
+          <section class="extensions-column">
+            <h3>Installed</h3>
+            <div id="installedExtensionsList" class="extensions-list"></div>
+
+            <h3>Marketplace</h3>
+            <div id="marketplaceExtensionsList" class="extensions-list"></div>
+          </section>
+
+          <section class="extensions-detail">
+            <h3 id="extensionDetailName">Select an extension</h3>
+            <p id="extensionDetailMeta" class="extension-detail-meta"></p>
+            <p id="extensionDetailPermissions" class="extension-detail-permissions"></p>
+            <p id="extensionDetailStats" class="extension-detail-stats"></p>
+            <div id="extensionActions" class="extension-actions"></div>
+            <iframe id="extensionSettingsFrame" class="extension-settings-frame" sandbox=""></iframe>
+            <label class="extension-settings-label" for="extensionSettingsEditor">Config JSON</label>
+            <textarea id="extensionSettingsEditor" class="extension-settings-editor" spellcheck="false"></textarea>
+            <button id="saveExtensionSettingsButton" class="settings-btn">Save Extension Settings</button>
+          </section>
+        </div>
+      </div>
+    </div>
 
     <script src="./renderer.js"></script>
   </body>

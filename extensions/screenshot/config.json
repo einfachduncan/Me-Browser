@@ -1,0 +1,16 @@
+{
+  "installed": true,
+  "enabled": true,
+  "settings": {
+    "format": "png",
+    "copyToClipboard": false,
+    "saveFolder": "Pictures"
+  },
+  "storage": {},
+  "runtime": {
+    "blockPatterns": []
+  },
+  "stats": {
+    "blockedRequests": 0
+  }
+}

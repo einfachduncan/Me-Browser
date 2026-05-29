@@ -1,0 +1,16 @@
+{
+  "id": "adblock-pro",
+  "name": "Advanced Ad-Blocker",
+  "version": "1.0.0",
+  "description": "Pattern-based request blocking with whitelist support and live block counts.",
+  "icon": "🚫",
+  "entry": "extension.js",
+  "settings": "settings.html",
+  "bundled": true,
+  "permissions": ["webRequest", "storage", "notifications"],
+  "defaultConfig": {
+    "blockPatterns": ["*doubleclick*", "*googlesyndication*", "*adservice*", "*analytics*"],
+    "whitelist": [],
+    "filterLists": ["EasyList", "uBlock Filters"]
+  }
+}

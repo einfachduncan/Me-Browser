@@ -1,0 +1,21 @@
+{
+  "id": "dark-mode",
+  "name": "Dark Mode",
+  "version": "1.0.0",
+  "description": "Applies an invert-based dark theme with adjustable brightness and domain rules.",
+  "icon": "🌙",
+  "entry": "extension.js",
+  "settings": "settings.html",
+  "bundled": true,
+  "permissions": ["storage", "scripting"],
+  "defaultConfig": {
+    "brightness": 0.92,
+    "whitelist": [],
+    "autoDomains": []
+  },
+  "contentScripts": [
+    {
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

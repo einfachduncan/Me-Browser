@@ -1,0 +1,21 @@
+{
+  "id": "cookie-manager",
+  "name": "Cookie Manager",
+  "version": "1.0.0",
+  "description": "Inspect site cookies, clear the current domain, and store cookie management preferences.",
+  "icon": "🍪",
+  "entry": "extension.js",
+  "settings": "settings.html",
+  "bundled": true,
+  "permissions": ["cookieStore", "storage", "notifications"],
+  "actions": [
+    {
+      "id": "clear-current-domain",
+      "label": "Clear current site cookies"
+    }
+  ],
+  "defaultConfig": {
+    "autoClearOnExit": false,
+    "favorites": []
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "installed": true,
+  "enabled": true,
+  "settings": {
+    "brightness": 0.92,
+    "whitelist": [],
+    "autoDomains": []
+  },
+  "storage": {},
+  "runtime": {
+    "blockPatterns": []
+  },
+  "stats": {
+    "blockedRequests": 0
+  }
+}

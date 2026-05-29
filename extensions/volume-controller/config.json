@@ -1,0 +1,17 @@
+{
+  "installed": true,
+  "enabled": true,
+  "settings": {
+    "volume": 0.8,
+    "brightness": 1,
+    "contrast": 1,
+    "supportedSites": ["youtube.com", "vimeo.com"]
+  },
+  "storage": {},
+  "runtime": {
+    "blockPatterns": []
+  },
+  "stats": {
+    "blockedRequests": 0
+  }
+}

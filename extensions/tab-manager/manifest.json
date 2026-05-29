@@ -1,0 +1,22 @@
+{
+  "id": "tab-manager",
+  "name": "Tab Manager",
+  "version": "1.0.0",
+  "description": "Save tab groups and keep lightweight tab organization metadata inside the browser.",
+  "icon": "📑",
+  "entry": "extension.js",
+  "settings": "settings.html",
+  "bundled": true,
+  "permissions": ["tabs", "storage"],
+  "actions": [
+    {
+      "id": "save-current-group",
+      "label": "Save current tab group"
+    }
+  ],
+  "defaultConfig": {
+    "savedGroups": [],
+    "quickSwitcher": true,
+    "closeDuplicatesOnDemand": true
+  }
+}
