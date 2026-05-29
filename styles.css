@@ -287,8 +287,13 @@ body {
   transition: margin-right 0.3s ease;
 }
 
-.main-container.sidebar-open .webviews-container {
-  margin-right: var(--sidebar-width);
+.webviews-container {
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar {
+  z-index: 9999;
 }
 
 /* SIDEBAR */
