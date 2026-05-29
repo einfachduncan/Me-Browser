@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Me Browser</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="toolbar">
+      <div class="nav-row">
+        <button id="backButton" title="Back">←</button>
+        <button id="forwardButton" title="Forward">→</button>
+        <button id="reloadButton" title="Reload">⟳</button>
+        <button id="homeButton" title="Home">⌂</button>
+        <input id="addressBar" type="text" placeholder="Enter URL" autocomplete="off" />
+        <button id="goButton">Go</button>
+        <div id="loadingSpinner" class="spinner hidden" aria-live="polite"></div>
+      </div>
+      <div class="settings-row">
+        <label><input id="adBlockToggle" type="checkbox" /> Ad Block</label>
+        <label><input id="trackingToggle" type="checkbox" /> Tracking Protection</label>
+        <label><input id="proxyToggle" type="checkbox" /> Proxy</label>
+        <input id="proxyHost" type="text" placeholder="Proxy host" />
+        <input id="proxyPort" type="text" placeholder="Port" />
+        <button id="applyProxyButton">Apply Proxy</button>
+        <button id="clearCacheButton">Clear Cache</button>
+      </div>
+      <div class="bookmark-row">
+        <button id="bookmarkButton">☆ Bookmark</button>
+        <select id="bookmarkList">
+          <option value="">Bookmarks</option>
+        </select>
+        <span id="statusText"></span>
+      </div>
+    </header>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>
