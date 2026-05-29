@@ -1,0 +1,28 @@
+{
+  "name": "me-browser",
+  "version": "1.0.0",
+  "description": "Minimal secure Electron browser",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node -e \"console.log('No automated tests configured')\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/einfachduncan/Me-Browser.git"
+  },
+  "keywords": [
+    "electron",
+    "browser"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/einfachduncan/Me-Browser/issues"
+  },
+  "homepage": "https://github.com/einfachduncan/Me-Browser#readme",
+  "devDependencies": {
+    "electron": "^42.3.0"
+  }
+}
